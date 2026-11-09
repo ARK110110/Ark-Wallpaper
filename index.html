@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Dashboard</title>
+
+<link rel="stylesheet" href="src/output.css">
+<!-- Tambahkan di bagian <head> untuk import font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+    background:#09090b;
+}
+
+.grid-bg{
+    position:fixed;
+    inset:-50%;
+
+    background-image:
+        linear-gradient(
+            rgba(255,255,255,.03) 2px,
+            transparent 2px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(255,255,255,.03) 2px,
+            transparent 2px
+        );
+
+    background-size:60px 60px;
+
+    transform:rotate(-15deg);
+
+    animation:gridMove 5s linear infinite;
+}
+
+@keyframes gridMove{
+    from{
+        background-position:0 0;
+    }
+    to{
+        background-position:60px 60px;
+    }
+}
+
+.glass{
+    background:rgba(255,255,255,.03);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.08);
+}
+
+.panel-open{
+    opacity:1 !important;
+    transform:translateX(0) translateY(0) !important;
+    pointer-events:auto !important;
+}
+
+.schedule-wrapper{
+    height:65vh;
+    overflow:hidden;
+    position:relative;
+}
+
+.schedule-marquee{
+    display:flex;
+    flex-direction:column;
+    animation:scrollSchedule 30s linear infinite;
+}
+
+@keyframes scrollSchedule{
+    from{
+        transform:translateY(0);
+    }
+    to{
+        transform:translateY(-50%);
+    }
+}
+
+.schedule-item.active{
+    background:white;
+    border-color:white;
+}
+
+.schedule-item.active .schedule-time,
+.schedule-item.active .schedule-task{
+    color:black;
+}
+
+/* ========================= */
+/* PRAYER VIEW */
+/* ========================= */
+
+.prayer-view{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    opacity:0;
+    pointer-events:none;
+
+    transition:.7s;
+}
+
+.prayer-view.show{
+    opacity:1;
+    pointer-events:auto;
+}
+
+.prayer-container{
+    position:relative;
+    width:100vh;
+    height:100vh;
+}
+
+.prayer-label{
+    position:absolute;
+    text-align:center;
+}
+
+.prayer-active{
+    color:white !important;
+    transform:scale(1.1);
+}
+
+.ring-center{
+    position:absolute;
+    inset:0;
+
+    
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+}
+
+.ring-clock{
+    font-size:11.85vh;
+    font-weight:600;
+}
+
+.ring-date{
+    color:#71717a;
+    font-size: 1.48vh;
+}
+
+#mainDashboard{
+    transition:.7s;
+}
+
+.dashboard-hidden{
+    opacity:0;
+    pointer-events:none;
+}
+
+#prayerSvg{
+    width:100%;
+    height:100%;
+}
+
+/* ========================= */
+/* REFRESH BUTTON HOVER ZONE & ANIMATION */
+/* ========================= */
+
+.top-right-hover-zone {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 140px;
+    height: 140px;
+    z-index: 50;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 24px;
+}
+
+.refresh-btn {
+    opacity: 0;
+    transform: scale(0.8);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.top-right-hover-zone:hover .refresh-btn {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+/* ========================= */
+/* CLOCK CONTAINER & BUTTON SLIDE ANIMATION */
+/* ========================= */
+
+.clock-info-container {
+    position: relative;
+    z-index: 10;
+}
+
+.date-hover-wrapper {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+}
+
+.buttons-slide-zone {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding-top: 16px;
+    width: max-content;
+}
+
+.date-hover-wrapper:hover .buttons-slide-zone {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+
+</style>
+</head>
+
+<body class="h-screen overflow-hidden text-white">
+
+<div class="grid-bg"></div>
+
+<!-- ==================== -->
+<!-- TOP RIGHT REFRESH CONTAINER -->
+<!-- ==================== -->
+<div class="top-right-hover-zone">
+    <button
+        id="refreshBtn"
+        onclick="window.location.reload();"
+        title="Refresh Page"
+        class="
+            refresh-btn
+            glass
+            rounded-[6px]
+            p-3
+            text-zinc-300
+            hover:text-white
+            hover:border-white/20
+            active:scale-95
+            duration-200
+            flex
+            items-center
+            justify-center
+            shadow-lg
+        ">
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="18" 
+            height="18" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"
+            class="transition-transform duration-500 hover:rotate-180">
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M3 21v-5h5"></path>
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+        </svg>
+    </button>
+</div>
+
+<!-- ==================== -->
+<!-- MAIN DASHBOARD -->
+<!-- ==================== -->
+
+<main
+    id="mainDashboard"
+    class="relative z-10  h-full">
+
+    <section
+        id="clockSection"
+        class="
+            absolute
+            left-1/2
+            top-1/2
+            -translate-x-1/2
+            -translate-y-1/2
+            transition-all
+            duration-700
+        ">
+
+        <div class="text-center">
+
+            <h1
+                id="clock"
+                class="
+                    text-8xl
+                    md:text-9xl
+                    font-semibold
+                    tracking-tight
+                    cursor-pointer
+                    select-none
+                    hover:scale-95
+                    duration-300
+                ">
+                00:00:00
+            </h1>
+
+            <div class="date-hover-wrapper">
+                <div class="clock-info-container">
+                    <h2 id="day" class="mt-5 text-sm md:text-base font-normal tracking-[0.25em] text-zinc-300 opacity-90 select-none" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                    </h2>
+
+                    <p
+                        id="date"
+                        class="mt-2 text-zinc-600">
+                    </p>
+                </div>
+
+                <div class="buttons-slide-zone">
+                    <button
+                        id="todayBtn"
+                        class="
+                            rounded-[4px]
+                            px-5
+                            py-2
+                            text-sm
+                            hover:scale-90
+                            duration-300
+                            glass
+                        ">
+                    </button>
+
+                    <button
+                        id="tomorrowBtn"
+                        class="
+                            glass
+                            rounded-[4px]
+                            px-5
+                            py-2
+                            text-sm
+                            hover:scale-90
+                            duration-300
+                        ">
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+    <section
+        id="schedulePanel"
+        class="
+            glass
+            absolute
+            right-20
+            top-1/2
+            -translate-y-1/2
+            w-[420px]
+            rounded-[8px]
+            p-6
+            opacity-0
+            translate-x-10
+            pointer-events-none
+            transition-all
+            duration-700
+        ">
+
+        <h3
+            id="scheduleTitle"
+            class="
+                uppercase
+                tracking-[4px]
+                text-xs
+                text-zinc-500
+                mb-6
+            ">
+        </h3>
+
+        <div class="schedule-wrapper">
+            <div
+                id="scheduleContent"
+                class="schedule-marquee">
+            </div>
+        </div>
+
+    </section>
+
+</main>
+
+<!-- ==================== -->
+<!-- PRAYER VIEW -->
+<!-- ==================== -->
+
+<section
+    id="prayerView"
+    class="prayer-view">
+
+    <div class="prayer-container">
+
+        <svg
+            id="prayerSvg"
+            viewBox="0 0 800 800">
+        </svg>
+
+        <div class="ring-center">
+
+            <div
+                id="prayerClock"
+                class="ring-clock   
+                    hover:scale-95
+                    duration-300">
+                00:00:00
+            </div>
+
+            <div
+                id="prayerDate"
+                class="ring-date">
+            </div>
+
+        </div>
+
+        <!-- LABELS -->
+
+        <div
+            id="subuhLabel"
+            class="
+                prayer-label
+                top-2
+                left-1/2
+                -translate-x-1/2
+            ">
+        </div>
+
+        <div
+            id="dzuhurLabel"
+            class="
+                prayer-label
+                top-1/2
+                right-0
+                -translate-y-1/2
+            ">
+        </div>
+
+        <div
+            id="asharLabel"
+            class="
+                prayer-label
+                bottom-32
+                right-10
+            ">
+        </div>
+
+        <div
+            id="maghribLabel"
+            class="
+                prayer-label
+                bottom-32
+                left-10
+            ">
+        </div>
+
+        <div
+            id="isyaLabel"
+            class="
+                prayer-label
+                top-1/2
+                left-0
+                -translate-y-1/2
+            ">
+        </div>
+
+    </div>
+
+</section>
+
+<script
+    type="module"
+    src="scripts/app.js">
+</script>
+
+</body>
+</html>
